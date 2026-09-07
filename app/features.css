@@ -249,6 +249,8 @@
 .ai-output .panel-head span {
   color: var(--green);
 }
+
+.calendar-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:12px 15px;border:1px solid #24362e;background:#101a16;border-radius:7px}.calendar-status>span{display:flex;align-items:center;gap:7px;color:var(--green);font:600 9px 'DM Mono';letter-spacing:.1em}.calendar-status>span i{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}.calendar-status p{display:flex;align-items:center;gap:7px;color:#858a94;font-size:10px;margin:0}.economic-calendar{padding:8px 8px 0;min-height:680px}.tradingview-widget-container{min-height:620px}.calendar-source{border-top:1px solid var(--line);padding:13px 12px;color:#666b75;font-size:9px;line-height:1.5}.calendar-source a{color:#c79a45;text-decoration:none}.calendar-source a:hover{text-decoration:underline}@media(max-width:760px){.calendar-status{align-items:flex-start;gap:10px;flex-direction:column}.economic-calendar{min-height:650px}}
 .setup-list {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

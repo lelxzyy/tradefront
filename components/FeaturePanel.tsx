@@ -122,13 +122,45 @@ export default function FeaturePanel(p: Props) {
         </DataRequired>
       </Page>
     );
+  return <EconomicCalendar />;
+}
+
+function EconomicCalendar() {
+  const containerId = "tradingview-economic-calendar";
+
+  useEffect(() => {
+    const container = document.getElementById(containerId);
+    if (!container || container.childNodes.length) return;
+
+    const widget = document.createElement("div");
+    widget.className = "tradingview-widget-container__widget";
+    const script = document.createElement("script");
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-events.js";
+    script.async = true;
+    script.textContent = JSON.stringify({
+      colorTheme: "dark",
+      isTransparent: true,
+      width: "100%",
+      height: 620,
+      locale: "id_ID",
+      importanceFilter: "0,1",
+      countryFilter: "us",
+    });
+    container.append(widget, script);
+  }, []);
+
   return (
-    <Page title="Economic calendar" sub="Gold-impact news and risk warnings">
-      <Empty
-        icon={<Newspaper />}
-        title="Economic provider not configured"
-        text="No fake events are shown. Connect a licensed economic-calendar provider before using news filters and countdown alerts."
-      />
+    <Page title="Economic calendar" sub="Jadwal berita ekonomi AS berdampak pada XAU/USD">
+      <div className="calendar-status">
+        <span><i /> LIVE CALENDAR</span>
+        <p><Info size={15} /> Waktu mengikuti zona perangkat. Fokus USD · dampak sedang dan tinggi.</p>
+      </div>
+      <section className="panel economic-calendar">
+        <div id={containerId} className="tradingview-widget-container" />
+        <div className="calendar-source">
+          Data kalender disediakan oleh <a href="https://www.tradingview.com/economic-calendar/" target="_blank" rel="noreferrer">TradingView</a>. Jadwal dapat berubah; verifikasi sebelum membuka posisi.
+        </div>
+      </section>
     </Page>
   );
 }
@@ -145,7 +177,7 @@ function Page({
     <>
       <div className="title-row">
         <div>
-          <p className="eyebrow">XAUUSD SMART ASSISTANT</p>
+          <p className="eyebrow">LELXZYY TRADE</p>
           <h1>{title}</h1>
           <p>{sub}</p>
         </div>

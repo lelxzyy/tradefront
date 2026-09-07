@@ -42,6 +42,14 @@ type Market = {
   synced_at?: string;
   sync_enabled?: boolean;
 };
+type ApiUsage = {
+  used: number;
+  limit: number;
+  remaining: number;
+  percent_used: number;
+  plan: string | null;
+  checked_at: string;
+};
 export type Analysis = {
   status: string;
   confidence: number;
@@ -73,6 +81,7 @@ export type Analysis = {
 export default function Dashboard() {
   const [market, setMarket] = useState<Market | null>(null),
     [analysis, setAnalysis] = useState<Analysis | null>(null),
+    [apiUsage, setApiUsage] = useState<ApiUsage | null>(null),
     [candles, setCandles] = useState<any[]>([]),
     [timeframe, setTimeframe] = useState("M15"),
     [error, setError] = useState(false),
@@ -99,6 +108,22 @@ export default function Dashboard() {
       mounted = false;
       window.clearInterval(quoteTimer);
     };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const refreshUsage = async () => {
+      try {
+        const result = await fetch(`${API}/market/usage`, { cache: "no-store" })
+          .then((response) => response.ok ? response.json() : Promise.reject());
+        if (mounted) setApiUsage(result.data);
+      } catch {
+        // Quota monitoring must not interrupt the trading dashboard.
+      }
+    };
+    refreshUsage();
+    const usageTimer = window.setInterval(refreshUsage, 300_000);
+    return () => { mounted = false; window.clearInterval(usageTimer); };
   }, []);
 
   useEffect(() => {
@@ -139,10 +164,10 @@ export default function Dashboard() {
     <main>
       <aside className={mobile ? "open" : ""}>
         <div className="brand">
-          <span className="logo">X</span>
+          <span className="logo">L</span>
           <div>
-            <b>AURUM</b>
-            <small>SMART TRADING</small>
+            <b>LELXZYY</b>
+            <small>TRADE</small>
           </div>
         </div>
         <nav>
@@ -209,6 +234,7 @@ export default function Dashboard() {
           {active === "overview" ? (
             <Overview
               market={market}
+              apiUsage={apiUsage}
               analysis={analysis}
               candles={candles}
               error={error}
@@ -237,6 +263,7 @@ export default function Dashboard() {
 }
 function Overview({
   market,
+  apiUsage,
   analysis,
   candles,
   error,
@@ -283,6 +310,17 @@ function Overview({
           </div>
         </div>
       )}
+      <div className={`quota-strip ${(apiUsage?.percent_used || 0) >= 85 ? "danger" : ""}`}>
+        <div className="quota-heading">
+          <span>TWELVE DATA · {(apiUsage?.plan || "API").toUpperCase()}</span>
+          <b>{apiUsage ? `${apiUsage.remaining} kredit tersisa` : "Memuat kuota…"}</b>
+        </div>
+        <div className="quota-track"><i style={{ width: `${Math.min(apiUsage?.percent_used || 0, 100)}%` }} /></div>
+        <div className="quota-detail">
+          <span>{apiUsage ? `${apiUsage.used} digunakan dari ${apiUsage.limit} kredit harian` : "Menunggu data penggunaan API"}</span>
+          <span>{apiUsage ? `Dicek ${formatDateTime(apiUsage.checked_at)} WIB` : "—"}</span>
+        </div>
+      </div>
       <div className="metrics">
         <Metric
           label="MARKET BIAS"

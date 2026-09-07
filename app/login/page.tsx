@@ -30,7 +30,7 @@ export default function LoginPage() {
   return <main className="login-page">
     <div className="login-glow" />
     <section className="login-card">
-      <div className="login-brand"><span className="logo">X</span><div><b>AURUM</b><small>SMART TRADING</small></div></div>
+      <div className="login-brand"><span className="logo">L</span><div><b>LELXZYY</b><small>TRADE</small></div></div>
       <div className="login-icon"><LockKey size={24} weight="duotone" /></div>
       <p className="eyebrow"><span>OWNER ACCESS</span> / SECURE SESSION</p>
       <h1>Masuk ke trading desk</h1>
