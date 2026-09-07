@@ -11,6 +11,7 @@ import {
   Newspaper,
   Pulse,
   ShieldCheck,
+  SignOut,
   Sparkle,
   SquaresFour,
   Target,
@@ -122,6 +123,10 @@ export default function Dashboard() {
     setActive(id);
     setMobile(false);
   };
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  };
   return (
     <main>
       <aside className={mobile ? "open" : ""}>
@@ -187,7 +192,9 @@ export default function Dashboard() {
             <div className="live">
               <i /> API
             </div>
-            <span className="avatar">LS</span>
+            <button className="avatar" onClick={logout} title="Keluar" aria-label="Keluar dari dashboard">
+              <SignOut size={16} />
+            </button>
           </div>
         </header>
         <div className="content">
