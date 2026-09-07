@@ -15,6 +15,7 @@ import {
   Sparkle,
   SquaresFour,
   Target,
+  Users,
   WifiSlash,
 } from "@phosphor-icons/react";
 import FeaturePanel from "@/components/FeaturePanel";
@@ -32,6 +33,7 @@ const nav = [
   ["calendar", "Economic calendar", Newspaper],
   ["calculator", "Calculator", Calculator],
   ["journal", "Trade journal", BookOpen],
+  ["users", "User management", Users],
 ] as const;
 type Market = {
   open: number;

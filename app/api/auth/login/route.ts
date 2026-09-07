@@ -20,15 +20,15 @@ export async function POST(request: Request) {
   const db = await database();
   const users = db.collection("users");
   await users.createIndex({ email: 1 }, { unique: true });
-  let user = await users.findOne<{ email: string; passwordHash: string }>({ email });
+  let user = await users.findOne<{ email: string; passwordHash: string; active?: boolean }>({ email });
 
   // Bootstrap the first owner from server-only environment variables.
   if (!user && ownerEmail && passwordHash && safeEqual(email, ownerEmail) && safeEqual(candidateHash, passwordHash)) {
     await users.insertOne({ email, passwordHash: await hashPassword(password), role: "owner", createdAt: new Date(), lastLoginAt: new Date() });
-    user = await users.findOne<{ email: string; passwordHash: string }>({ email });
+    user = await users.findOne<{ email: string; passwordHash: string; active?: boolean }>({ email });
   }
 
-  const valid = Boolean(user && await verifyPassword(password, user.passwordHash));
+  const valid = Boolean(user && user.active !== false && await verifyPassword(password, user.passwordHash));
   if (!valid) {
     await new Promise((resolve) => setTimeout(resolve, 350));
     return NextResponse.json({ message: "Email atau password salah." }, { status: 401 });

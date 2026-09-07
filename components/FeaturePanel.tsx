@@ -11,6 +11,7 @@ import {
   Newspaper,
   Sparkle,
   Trash,
+  UserPlus,
   WifiSlash,
 } from "@phosphor-icons/react";
 import type { Analysis } from "@/app/page";
@@ -38,6 +39,7 @@ export default function FeaturePanel(p: Props) {
   if (p.active === "calculator") return <TradingCalculator />;
   if (p.active === "journal") return <Journal />;
   if (p.active === "settings") return <BrokerSettings />;
+  if (p.active === "users") return <UserManagement />;
   if (p.active === "chart")
     return (
       <Page title="Live chart" sub="Interactive verified OHLC chart">
@@ -815,4 +817,49 @@ function BrokerSettings() {
       </section>
     </Page>
   );
+}
+
+type ManagedUser = { id: string; name?: string; email: string; role: "owner" | "user"; active?: boolean; lastLoginAt?: string };
+function UserManagement() {
+  const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "user" });
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const load = async () => {
+    setLoading(true);
+    try { const r = await fetch("/api/users", { cache: "no-store" }); const x = await r.json(); if (!r.ok) throw new Error(x.message); setUsers(x.data); }
+    catch (e) { setMessage(e instanceof Error ? e.message : "Gagal memuat user"); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { void load(); }, []);
+  const request = async (method: string, body?: unknown, query = "") => {
+    setMessage("");
+    const r = await fetch(`/api/users${query}`, { method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
+    const x = await r.json();
+    if (!r.ok) { setMessage(x.message || "Operasi gagal"); return false; }
+    await load(); return true;
+  };
+  const create = async () => {
+    if (await request("POST", form)) { setForm({ name: "", email: "", password: "", role: "user" }); setMessage("User berhasil dibuat."); }
+  };
+  return <Page title="User management" sub="Kelola akses dan data pengguna LELXZYY TRADE">
+    <section className="panel form-card user-create">
+      <div className="panel-head"><b>Add user</b><UserPlus /></div>
+      <div className="form-grid">
+        <label>NAME<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
+        <label>EMAIL<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
+        <label>PASSWORD<input type="password" minLength={8} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></label>
+        <label>ROLE<select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}><option value="user">User</option><option value="owner">Owner</option></select></label>
+      </div>
+      <button className="primary" onClick={create} disabled={!form.name || !form.email || form.password.length < 8}><UserPlus /> Create user</button>
+      {message && <span className="saved">{message}</span>}
+    </section>
+    <section className="panel journal-table user-table"><table><thead><tr><th>USER</th><th>ROLE</th><th>STATUS</th><th>LAST LOGIN</th><th>ACTIONS</th></tr></thead>
+      <tbody>{loading ? <tr><td colSpan={5}>Loading users…</td></tr> : users.map((user) => <tr key={user.id}>
+        <td><b>{user.name || "Unnamed"}</b><small>{user.email}</small></td><td><span className="tag">{user.role.toUpperCase()}</span></td>
+        <td className={user.active === false ? "red" : "green"}>{user.active === false ? "INACTIVE" : "ACTIVE"}</td>
+        <td>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) : "Never"}</td>
+        <td><div className="user-actions"><button onClick={() => void request("PATCH", { email: user.email, active: user.active === false })}>{user.active === false ? "Enable" : "Disable"}</button><button onClick={() => { const password = window.prompt("Password baru (minimal 8 karakter)"); if (password) void request("PATCH", { email: user.email, password }); }}>Reset</button><button className="delete" onClick={() => { if (window.confirm(`Hapus ${user.email} beserta seluruh datanya?`)) void request("DELETE", undefined, `?email=${encodeURIComponent(user.email)}`); }}>Delete</button></div></td>
+      </tr>)}</tbody></table></section>
+  </Page>;
 }
