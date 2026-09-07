@@ -14,6 +14,7 @@ import {
   WifiSlash,
 } from "@phosphor-icons/react";
 import type { Analysis } from "@/app/page";
+import { appendUserHistory, loadUserData, saveUserSection } from "@/lib/user-data-client";
 const MarketChart = dynamic(() => import("./MarketChart"), { ssr: false });
 type Props = {
   active: string;
@@ -226,6 +227,7 @@ function AiAnalysisPage(p: Props) {
         throw new Error(result.detail || result.message || "AI request failed");
       setText(result.data.ai.explanation);
       setSnapshot(result.data);
+      void appendUserHistory("aiHistory", { timeframe: p.timeframe, ...result.data });
     } catch (error) {
       setFailure(error instanceof Error ? error.message : "AI analysis failed");
     } finally {
@@ -426,6 +428,22 @@ function TradingCalculator() {
     [contract, setContract] = useState(100),
     [tick, setTick] = useState(0.01),
     [direction, setDirection] = useState("BUY");
+  const [cloudReady, setCloudReady] = useState(false);
+  useEffect(() => {
+    loadUserData().then((data) => {
+      const x = data.calculatorSettings;
+      if (x) {
+        setType(x.type ?? "risk"); setBalance(x.balance ?? 1000); setRisk(x.risk ?? 1);
+        setEntry(x.entry ?? 3500); setOther(x.other ?? 3490); setLot(x.lot ?? .01);
+        setContract(x.contract ?? 100); setTick(x.tick ?? .01); setDirection(x.direction ?? "BUY");
+      }
+    }).finally(() => setCloudReady(true));
+  }, []);
+  useEffect(() => {
+    if (!cloudReady) return;
+    const timer = window.setTimeout(() => void saveUserSection("calculatorSettings", { type, balance, risk, entry, other, lot, contract, tick, direction }), 600);
+    return () => window.clearTimeout(timer);
+  }, [cloudReady, type, balance, risk, entry, other, lot, contract, tick, direction]);
   const distance = Math.abs(entry - other);
   const result = useMemo(
     () =>
@@ -584,9 +602,16 @@ function Journal() {
     notes: "",
   });
   useEffect(() => {
-    try {
-      setTrades(JSON.parse(localStorage.getItem("xau-trades") || "[]"));
-    } catch {}
+    loadUserData().then((data) => {
+      if (Array.isArray(data.journal)) setTrades(data.journal);
+      else {
+        try {
+          const local = JSON.parse(localStorage.getItem("xau-trades") || "[]");
+          setTrades(local);
+          if (local.length) void saveUserSection("journal", local);
+        } catch {}
+      }
+    }).catch(() => {});
   }, []);
   const save = () => {
     const pnl =
@@ -598,16 +623,18 @@ function Journal() {
     const next = [{ ...form, id: Date.now(), pnl }, ...trades];
     setTrades(next);
     localStorage.setItem("xau-trades", JSON.stringify(next));
+    void saveUserSection("journal", next);
   };
   const remove = (id: number) => {
     const next = trades.filter((x) => x.id !== id);
     setTrades(next);
     localStorage.setItem("xau-trades", JSON.stringify(next));
+    void saveUserSection("journal", next);
   };
   return (
     <Page
       title="Trade journal"
-      sub="Save trades locally and review performance"
+      sub="Save trades securely to your account and review performance"
     >
       <div className="journal-stats">
         <MetricBox a="Total trades" b={trades.length} />
@@ -735,13 +762,19 @@ function BrokerSettings() {
   });
   const [saved, setSaved] = useState(false);
   useEffect(() => {
-    try {
-      const x = localStorage.getItem("xau-broker");
-      if (x) setSpec(JSON.parse(x));
-    } catch {}
+    loadUserData().then((data) => {
+      if (data.brokerSettings) setSpec(data.brokerSettings);
+      else {
+        try {
+          const x = localStorage.getItem("xau-broker");
+          if (x) { const parsed = JSON.parse(x); setSpec(parsed); void saveUserSection("brokerSettings", parsed); }
+        } catch {}
+      }
+    }).catch(() => {});
   }, []);
   const save = () => {
     localStorage.setItem("xau-broker", JSON.stringify(spec));
+    void saveUserSection("brokerSettings", spec);
     setSaved(true);
   };
   return (
@@ -778,7 +811,7 @@ function BrokerSettings() {
         <button className="primary" onClick={save}>
           <FloppyDisk /> Save settings
         </button>
-        {saved && <span className="saved">Saved locally.</span>}
+        {saved && <span className="saved">Saved to MongoDB.</span>}
       </section>
     </Page>
   );

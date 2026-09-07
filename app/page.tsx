@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   BookOpen,
@@ -18,6 +18,7 @@ import {
   WifiSlash,
 } from "@phosphor-icons/react";
 import FeaturePanel from "@/components/FeaturePanel";
+import { appendUserHistory } from "@/lib/user-data-client";
 const MarketChart = dynamic(() => import("@/components/MarketChart"), {
   ssr: false,
 });
@@ -79,6 +80,7 @@ export type Analysis = {
   };
 };
 export default function Dashboard() {
+  const lastSignal = useRef("");
   const [market, setMarket] = useState<Market | null>(null),
     [analysis, setAnalysis] = useState<Analysis | null>(null),
     [apiUsage, setApiUsage] = useState<ApiUsage | null>(null),
@@ -140,6 +142,11 @@ export default function Dashboard() {
         if (mounted) {
           setCandles(c.data);
           setAnalysis(a.data);
+          const fingerprint = JSON.stringify([a.data.status, a.data.current_price, a.data.confidence, a.data.primary_setup]);
+          if (fingerprint !== lastSignal.current) {
+            lastSignal.current = fingerprint;
+            void appendUserHistory("signalHistory", { timeframe, ...a.data });
+          }
         }
       } catch {
         // Keep the last valid chart instead of replacing it during a transient rate limit.
