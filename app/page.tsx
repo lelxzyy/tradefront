@@ -39,6 +39,8 @@ type Market = {
   close: number;
   change_percent: number;
   timestamp: string;
+  synced_at?: string;
+  sync_enabled?: boolean;
 };
 export type Analysis = {
   status: string;
@@ -60,6 +62,12 @@ export type Analysis = {
     invalidation: string;
     executable: boolean;
     method: string;
+  };
+  ai?: {
+    explanation: string;
+    model: string;
+    provider: string;
+    generated_at: string;
   };
 };
 export default function Dashboard() {
@@ -245,17 +253,15 @@ function Overview({
           <h1>Good morning, Trader.</h1>
           <p>Here’s what’s happening with Gold right now.</p>
         </div>
-        <div className="updated">
-          <Clock size={16} />
-          Last update{" "}
-          <b>
-            {market
-              ? new Date(market.timestamp).toLocaleTimeString("id-ID", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : "—"}
-          </b>
+        <div className="sync-meta">
+          <span className={`sync-state ${market?.sync_enabled === false ? "off" : "on"}`}>
+            <i /> SYNC {market?.sync_enabled === false ? "OFF" : "ON"}
+          </span>
+          <div className="updated">
+            <Clock size={16} />
+            Sinkron terakhir <b>{market ? formatDateTime(market.synced_at || market.timestamp) : "—"}</b>
+          </div>
+          {market?.sync_enabled === false && <small>Hemat kuota aktif · 02.00–07.00 WIB</small>}
         </div>
       </div>
       {error && (
@@ -375,6 +381,18 @@ function Overview({
       </div>
     </>
   );
+}
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString("id-ID", {
+    timeZone: "Asia/Jakarta",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
 }
 function ChartPanel({ candles, market, timeframe, setTimeframe }: any) {
   return (

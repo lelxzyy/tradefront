@@ -228,7 +228,14 @@ function AiAnalysisPage(p: Props) {
           <section className="panel ai-output">
             <div className="panel-head">
               <b>AI explanation</b>
-              <span>GENERATED FROM ENGINE DATA</span>
+              <span className="ai-generated-time">
+                GENERATED {snapshot?.ai?.generated_at
+                  ? new Date(snapshot.ai.generated_at).toLocaleString("id-ID", {
+                      timeZone: "Asia/Jakarta", day: "2-digit", month: "short", year: "numeric",
+                      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+                    }) + " WIB"
+                  : "FROM ENGINE DATA"}
+              </span>
             </div>
             <AiNarrative text={text} />
           </section>
