@@ -243,6 +243,13 @@ function Overview({
   timeframe,
   setTimeframe,
 }: any) {
+  const hourWib = Number(new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    hour12: false,
+  }).format(new Date()));
+  const syncOff = market?.sync_enabled === false || (hourWib >= 2 && hourWib < 7);
+
   return (
     <>
       <div className="title-row">
@@ -254,14 +261,14 @@ function Overview({
           <p>Here’s what’s happening with Gold right now.</p>
         </div>
         <div className="sync-meta">
-          <span className={`sync-state ${market?.sync_enabled === false ? "off" : "on"}`}>
-            <i /> SYNC {market?.sync_enabled === false ? "OFF" : "ON"}
+          <span className={`sync-state ${syncOff ? "off" : "on"}`}>
+            <i /> SYNC {syncOff ? "OFF" : "ON"}
           </span>
           <div className="updated">
             <Clock size={16} />
             Sinkron terakhir <b>{market ? formatDateTime(market.synced_at || market.timestamp) : "—"}</b>
           </div>
-          {market?.sync_enabled === false && <small>Hemat kuota aktif · 02.00–07.00 WIB</small>}
+          {syncOff && <small>Hemat kuota aktif · 02.00–07.00 WIB</small>}
         </div>
       </div>
       {error && (
