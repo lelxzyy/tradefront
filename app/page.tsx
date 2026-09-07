@@ -125,7 +125,7 @@ export default function Dashboard() {
     let mounted = true;
     const refreshUsage = async () => {
       try {
-        const result = await fetch(`${API}/market/usage`, { cache: "no-store" })
+        const result = await fetch(`/api/provider-usage`, { cache: "no-store" })
           .then((response) => response.ok ? response.json() : Promise.reject());
         if (mounted) setApiUsage(result.data);
       } catch {
@@ -182,7 +182,7 @@ export default function Dashboard() {
     try {
       const [marketResponse, usageResponse] = await Promise.all([
         fetch(`${API}/market/xauusd?refresh=${Date.now()}`, { cache: "no-store" }),
-        fetch(`${API}/market/usage?refresh=${Date.now()}`, { cache: "no-store" }),
+        fetch(`/api/provider-usage?refresh=${Date.now()}`, { cache: "no-store" }),
       ]);
       if (marketResponse.ok) {
         const result = await marketResponse.json();
