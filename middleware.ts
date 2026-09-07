@@ -14,4 +14,4 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"] };
+export const config = { matcher: ["/((?!api/auth|api/internal|_next/static|_next/image|favicon.ico).*)"] };

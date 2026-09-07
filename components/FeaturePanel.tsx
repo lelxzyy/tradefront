@@ -12,6 +12,7 @@ import {
   Sparkle,
   Trash,
   UserPlus,
+  Key,
   WifiSlash,
 } from "@phosphor-icons/react";
 import type { Analysis } from "@/app/page";
@@ -40,6 +41,7 @@ export default function FeaturePanel(p: Props) {
   if (p.active === "journal") return <Journal />;
   if (p.active === "settings") return <BrokerSettings />;
   if (p.active === "users") return <UserManagement />;
+  if (p.active === "api-keys") return <ApiKeyManagement />;
   if (p.active === "chart")
     return (
       <Page title="Live chart" sub="Interactive verified OHLC chart">
@@ -862,4 +864,16 @@ function UserManagement() {
         <td><div className="user-actions"><button onClick={() => void request("PATCH", { email: user.email, active: user.active === false })}>{user.active === false ? "Enable" : "Disable"}</button><button onClick={() => { const password = window.prompt("Password baru (minimal 8 karakter)"); if (password) void request("PATCH", { email: user.email, password }); }}>Reset</button><button className="delete" onClick={() => { if (window.confirm(`Hapus ${user.email} beserta seluruh datanya?`)) void request("DELETE", undefined, `?email=${encodeURIComponent(user.email)}`); }}>Delete</button></div></td>
       </tr>)}</tbody></table></section>
   </Page>;
+}
+
+type ProviderKey = { id:string; label:string; maskedKey:string; active:boolean; priority:number; remaining?:number; limit?:number; lastError?:string; disabledUntil?:string };
+function ApiKeyManagement(){
+  const [keys,setKeys]=useState<ProviderKey[]>([]),[label,setLabel]=useState(""),[key,setKey]=useState(""),[message,setMessage]=useState("");
+  const load=async()=>{const r=await fetch("/api/provider-keys",{cache:"no-store"});const x=await r.json();if(r.ok)setKeys(x.data);else setMessage(x.message)};
+  useEffect(()=>{void load()},[]);
+  const call=async(method:string,body?:unknown,query="")=>{const r=await fetch(`/api/provider-keys${query}`,{method,headers:body?{"Content-Type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});const x=await r.json();if(!r.ok){setMessage(x.message);return false}await load();return true};
+  return <Page title="Twelve Data API pool" sub="Rotasi otomatis ketika kredit salah satu API key habis">
+    <section className="panel form-card user-create"><div className="panel-head"><b>Add API key</b><Key /></div><div className="form-grid"><label>LABEL<input value={label} onChange={e=>setLabel(e.target.value)} placeholder="Primary key"/></label><label>TWELVE DATA KEY<input type="password" value={key} onChange={e=>setKey(e.target.value)} placeholder="Paste API key"/></label></div><button className="primary" disabled={key.length<20} onClick={async()=>{if(await call("POST",{label,key})){setLabel("");setKey("");setMessage("API key tersimpan terenkripsi.")}}}><Key/> Add key</button>{message&&<span className="saved">{message}</span>}</section>
+    <section className="panel journal-table user-table"><table><thead><tr><th>PRIORITY</th><th>LABEL / KEY</th><th>CREDITS</th><th>ROTATION</th><th>ACTIONS</th></tr></thead><tbody>{keys.length?keys.map(x=><tr key={x.id}><td>#{x.priority}</td><td><b>{x.label}</b><small>{x.maskedKey} · {x.active?"ACTIVE":"DISABLED"}</small></td><td className={(x.remaining??1)===0?"red":"green"}>{x.remaining!==undefined?`${x.remaining} / ${x.limit}`:"—"}</td><td>{x.disabledUntil?`Retry ${new Date(x.disabledUntil).toLocaleString("id-ID",{timeZone:"Asia/Jakarta"})}`:"READY"}</td><td><div className="user-actions"><button onClick={()=>void call("PATCH",{id:x.id,active:!x.active})}>{x.active?"Disable":"Enable"}</button><button onClick={()=>{const value=window.prompt("API key baru");if(value)void call("PATCH",{id:x.id,key:value})}}>Change</button><button onClick={()=>{const value=window.prompt("Priority",String(x.priority));if(value)void call("PATCH",{id:x.id,priority:Number(value)})}}>Priority</button><button className="delete" onClick={()=>{if(confirm(`Hapus ${x.label}?`))void call("DELETE",undefined,`?id=${x.id}`)}}>Delete</button></div></td></tr>):<tr><td colSpan={5}>Belum ada API key.</td></tr>}</tbody></table></section>
+  </Page>
 }

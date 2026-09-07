@@ -1,0 +1,7 @@
+import { ObjectId } from "mongodb";
+import { NextResponse } from "next/server";
+import { database } from "@/lib/mongodb";
+import { decryptKey } from "@/lib/key-vault";
+function allowed(r:Request){const token=r.headers.get("authorization")?.replace(/^Bearer\s+/i,"");return !!token&&token===process.env.VAULT_INTERNAL_SECRET}
+export async function GET(r:Request){if(!allowed(r))return NextResponse.json({message:"Unauthorized"},{status:401});const excluded=new URL(r.url).searchParams.get("exclude")?.split(",").filter(Boolean)||[];const query:any={provider:"twelvedata",active:true,$or:[{disabledUntil:{$exists:false}},{disabledUntil:{$lte:new Date()}}]};if(excluded.length)query._id={$nin:excluded.map(x=>new ObjectId(x))};const row=await (await database()).collection("provider_keys").findOne(query,{sort:{priority:1}});if(!row)return NextResponse.json({message:"No active API key"},{status:404});return NextResponse.json({id:row._id.toString(),key:await decryptKey(row.encryptedKey)})}
+export async function POST(r:Request){if(!allowed(r))return NextResponse.json({message:"Unauthorized"},{status:401});const b=await r.json();const reset=new Date();reset.setUTCDate(reset.getUTCDate()+1);reset.setUTCHours(0,2,0,0);await (await database()).collection("provider_keys").updateOne({_id:new ObjectId(b.id)},{$set:{lastError:b.reason||"exhausted",lastFailedAt:new Date(),disabledUntil:reset}});return NextResponse.json({ok:true})}

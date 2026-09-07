@@ -8,6 +8,7 @@ import {
   Clock,
   Gear,
   MagnifyingGlass,
+  Key,
   Newspaper,
   Pulse,
   ShieldCheck,
@@ -34,6 +35,7 @@ const nav = [
   ["calculator", "Calculator", Calculator],
   ["journal", "Trade journal", BookOpen],
   ["users", "User management", Users],
+  ["api-keys", "API key pool", Key],
 ] as const;
 type Market = {
   open: number;
