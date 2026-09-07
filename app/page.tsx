@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   BookOpen,
+  ArrowClockwise,
   Calculator,
   ChartLineUp,
   Clock,
@@ -85,9 +86,11 @@ export type Analysis = {
 };
 export default function Dashboard() {
   const lastSignal = useRef("");
+  const quoteFailures = useRef(0);
   const [market, setMarket] = useState<Market | null>(null),
     [analysis, setAnalysis] = useState<Analysis | null>(null),
     [apiUsage, setApiUsage] = useState<ApiUsage | null>(null),
+    [manualRefreshing, setManualRefreshing] = useState(false),
     [candles, setCandles] = useState<any[]>([]),
     [timeframe, setTimeframe] = useState("M15"),
     [error, setError] = useState(false),
@@ -102,14 +105,16 @@ export default function Dashboard() {
         }).then((r) => (r.ok ? r.json() : Promise.reject()));
         if (mounted) {
           setMarket(m.data);
+          quoteFailures.current = 0;
           setError(false);
         }
       } catch {
-        if (mounted) setError(true);
+        quoteFailures.current += 1;
+        if (mounted && quoteFailures.current >= 3) setError(true);
       }
     };
     refreshQuote();
-    const quoteTimer = window.setInterval(refreshQuote, 15_000);
+    const quoteTimer = window.setInterval(refreshQuote, 120_000);
     return () => {
       mounted = false;
       window.clearInterval(quoteTimer);
@@ -157,7 +162,7 @@ export default function Dashboard() {
       }
     };
     refreshTechnical();
-    const technicalTimer = window.setInterval(refreshTechnical, 60_000);
+    const technicalTimer = window.setInterval(refreshTechnical, 900_000);
     return () => {
       mounted = false;
       window.clearInterval(technicalTimer);
@@ -170,6 +175,23 @@ export default function Dashboard() {
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/login";
+  };
+  const manualRefresh = async () => {
+    if (manualRefreshing) return;
+    setManualRefreshing(true);
+    try {
+      const [marketResponse, usageResponse] = await Promise.all([
+        fetch(`${API}/market/xauusd?refresh=${Date.now()}`, { cache: "no-store" }),
+        fetch(`${API}/market/usage?refresh=${Date.now()}`, { cache: "no-store" }),
+      ]);
+      if (marketResponse.ok) {
+        const result = await marketResponse.json();
+        setMarket(result.data); setError(false); quoteFailures.current = 0;
+      }
+      if (usageResponse.ok) setApiUsage((await usageResponse.json()).data);
+    } finally {
+      window.setTimeout(() => setManualRefreshing(false), 30_000);
+    }
   };
   return (
     <main>
@@ -246,6 +268,8 @@ export default function Dashboard() {
             <Overview
               market={market}
               apiUsage={apiUsage}
+              manualRefreshing={manualRefreshing}
+              manualRefresh={manualRefresh}
               analysis={analysis}
               candles={candles}
               error={error}
@@ -275,6 +299,8 @@ export default function Dashboard() {
 function Overview({
   market,
   apiUsage,
+  manualRefreshing,
+  manualRefresh,
   analysis,
   candles,
   error,
@@ -324,7 +350,13 @@ function Overview({
       <div className={`quota-strip ${(apiUsage?.percent_used || 0) >= 85 ? "danger" : ""}`}>
         <div className="quota-heading">
           <span>TWELVE DATA · {(apiUsage?.plan || "API").toUpperCase()}</span>
-          <b>{apiUsage ? `${apiUsage.remaining} kredit tersisa` : "Memuat kuota…"}</b>
+          <div className="quota-actions">
+            <b>{apiUsage ? `${apiUsage.remaining} kredit tersisa` : "Memuat kuota…"}</b>
+            <button onClick={manualRefresh} disabled={manualRefreshing} title="Refresh market dan kredit">
+              <ArrowClockwise size={14} className={manualRefreshing ? "spin" : ""} />
+              {manualRefreshing ? "Refreshing" : "Refresh API"}
+            </button>
+          </div>
         </div>
         <div className="quota-track"><i style={{ width: `${Math.min(apiUsage?.percent_used || 0, 100)}%` }} /></div>
         <div className="quota-detail">
