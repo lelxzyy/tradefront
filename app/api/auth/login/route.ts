@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   const ownerEmail = process.env.OWNER_EMAIL?.trim().toLowerCase();
   const passwordHash = process.env.OWNER_PASSWORD_HASH?.trim().toLowerCase();
   const authSecret = process.env.AUTH_SECRET;
-  if (!authSecret || !process.env.MONGODB_URI) {
+  if (!authSecret || !(process.env.MONGODB_URI || process.env.MONGODB_URL)) {
     return NextResponse.json({ message: "Autentikasi server belum dikonfigurasi." }, { status: 503 });
   }
 
