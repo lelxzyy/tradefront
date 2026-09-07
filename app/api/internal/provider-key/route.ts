@@ -13,8 +13,10 @@ export async function POST(r:Request){
     const plain=await decryptKey(row.encryptedKey);
     const response=await fetch("https://api.twelvedata.com/api_usage",{headers:{Authorization:`apikey ${plain}`},cache:"no-store"});
     const usage=await response.json(); const used=Number(usage.daily_usage||0),limit=Number(usage.plan_daily_limit||0);
-    if(limit>0&&used>=limit){reset=new Date();reset.setUTCDate(reset.getUTCDate()+1);reset.setUTCHours(0,2,0,0);reason="Daily credits exhausted";}
-    await collection.updateOne({_id:row._id},{$set:{used,limit,remaining:Math.max(0,limit-used),usageCheckedAt:new Date()}});
+    if(limit>0){
+      if(used>=limit){reset=new Date();reset.setUTCDate(reset.getUTCDate()+1);reset.setUTCHours(0,2,0,0);reason="Daily credits exhausted";}
+      await collection.updateOne({_id:row._id},{$set:{used,limit,remaining:Math.max(0,limit-used),usageCheckedAt:new Date()}});
+    }
   }catch{}
   await collection.updateOne({_id:row._id},{$set:{lastError:reason,lastFailedAt:new Date(),disabledUntil:reset}});
   return NextResponse.json({ok:true,retryAt:reset,reason});

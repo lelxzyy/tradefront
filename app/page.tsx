@@ -98,6 +98,7 @@ export default function Dashboard() {
     [active, setActive] = useState("overview");
   useEffect(() => {
     let mounted = true;
+    let quoteTimer: number | undefined;
     const refreshQuote = async () => {
       try {
         const m = await fetch(`${API}/market/xauusd`, {
@@ -108,16 +109,21 @@ export default function Dashboard() {
           quoteFailures.current = 0;
           setError(false);
         }
+        return true;
       } catch {
         quoteFailures.current += 1;
         if (mounted && quoteFailures.current >= 3) setError(true);
+        return false;
       }
     };
-    refreshQuote();
-    const quoteTimer = window.setInterval(refreshQuote, 120_000);
+    const tick = async () => {
+      const connected = await refreshQuote();
+      if (mounted) quoteTimer = window.setTimeout(tick, connected ? 120_000 : 15_000);
+    };
+    void tick();
     return () => {
       mounted = false;
-      window.clearInterval(quoteTimer);
+      if (quoteTimer) window.clearTimeout(quoteTimer);
     };
   }, []);
 
@@ -139,6 +145,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     let mounted = true;
+    let technicalTimer: number | undefined;
     const refreshTechnical = async () => {
       try {
         const c = await fetch(`${API}/chart/xauusd?timeframe=${timeframe}`, {
@@ -156,16 +163,21 @@ export default function Dashboard() {
             lastSignal.current = fingerprint;
             void appendUserHistory("signalHistory", { timeframe, ...a.data });
           }
-        }
+          }
+        return true;
       } catch {
         // Keep the last valid chart instead of replacing it during a transient rate limit.
+        return false;
       }
     };
-    refreshTechnical();
-    const technicalTimer = window.setInterval(refreshTechnical, 900_000);
+    const tick = async () => {
+      const connected = await refreshTechnical();
+      if (mounted) technicalTimer = window.setTimeout(tick, connected ? 900_000 : 20_000);
+    };
+    void tick();
     return () => {
       mounted = false;
-      window.clearInterval(technicalTimer);
+      if (technicalTimer) window.clearTimeout(technicalTimer);
     };
   }, [timeframe]);
   const select = (id: string) => {

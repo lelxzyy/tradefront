@@ -871,7 +871,7 @@ type ProviderKey = { id:string; label:string; maskedKey:string; active:boolean; 
 function ApiKeyManagement(){
   const [keys,setKeys]=useState<ProviderKey[]>([]),[label,setLabel]=useState(""),[key,setKey]=useState(""),[message,setMessage]=useState("");
   const load=async(force=false)=>{const r=await fetch(`/api/provider-keys${force?"?refresh=1":""}`,{cache:"no-store"});const x=await r.json();if(r.ok)setKeys(x.data);else setMessage(x.message)};
-  useEffect(()=>{void load()},[]);
+  useEffect(()=>{void load();const timer=window.setInterval(()=>void load(),60_000);return()=>window.clearInterval(timer)},[]);
   const call=async(method:string,body?:unknown,query="")=>{const r=await fetch(`/api/provider-keys${query}`,{method,headers:body?{"Content-Type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined});const x=await r.json();if(!r.ok){setMessage(x.message);return false}await load();return true};
   return <Page title="Twelve Data API pool" sub="Rotasi otomatis ketika kredit salah satu API key habis">
     <section className="panel form-card user-create"><div className="panel-head"><b>Add API key</b><Key /></div><div className="form-grid"><label>LABEL<input value={label} onChange={e=>setLabel(e.target.value)} placeholder="Primary key"/></label><label>TWELVE DATA KEY<input type="password" value={key} onChange={e=>setKey(e.target.value)} placeholder="Paste API key"/></label></div><button className="primary" disabled={key.length<20} onClick={async()=>{if(await call("POST",{label,key})){setLabel("");setKey("");setMessage("API key tersimpan terenkripsi.")}}}><Key/> Add key</button>{message&&<span className="saved">{message}</span>}</section>
