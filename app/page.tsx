@@ -264,8 +264,8 @@ function Overview({
           <div>
             <b>Market Data Unavailable</b>
             <span>
-              Isi TWELVEDATA_API_KEY untuk data terverifikasi. Kalkulator dan
-              jurnal tetap dapat digunakan.
+              Provider market sedang tidak tersedia atau kuota hariannya habis.
+              Kalkulator dan jurnal tetap dapat digunakan.
             </span>
           </div>
         </div>
